@@ -17,4 +17,19 @@ var sum_to_n_b = function(n) {
     return n * (n + 1) / 2;
 };
 
+function testSumToN() {
+    const testCases = [0, 3, 10, 25, 100];
+    const implementations = [sum_to_n_a, sum_to_n_b, sum_to_n_c];
+    let allPassed = true;
 
+    testCases.forEach(testCase => {
+        const expected = testCase * (testCase + 1) / 2;
+        implementations.forEach((impl, index) => {
+            const result = impl(testCase);
+            const implName = `sum_to_n_${String.fromCharCode(97 + index)}`;
+            if (result !== expected) {
+                console.error(`Test failed for ${implName} with input ${testCase}.\n  Expected: ${expected}\n  Got: ${result}`);
+                allPassed = false;
+            }
+        });
+    });
