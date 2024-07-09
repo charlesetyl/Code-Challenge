@@ -1,0 +1,110 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { WalletRow } from './WalletRow';
+import { useWalletBalances } from './useWalletBalances';
+interface WalletBalance {
+    currency: string;
+    amount: number;
+    blockchain: string;
+  }
+  
+  interface FormattedWalletBalance extends WalletBalance {
+    formatted: string;
+    usdValue: number;
+  }
+  
+  class Datasource {
+    private url: string;
+  
+    constructor(url: string) {
+      this.url = url;
+    }
+  
+    async getPrices(): Promise<Record<string, number>> {
+      const response = await fetch(this.url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    }
+  }
+  
+  interface Props extends BoxProps {}
+  
+  /* The blockchain parameter in the original getPriority is typed as any, which defeats the purpose of using TypeScript.The blockchain parameter in getPriority is typed as any, which defeats the purpose of using TypeScript.
+  The purpose of TypeScript is to use static types to JavaScript and allow you to check the type of your variables. 
+
+  Hence, we can replace the getPriority function with a constant object.*/
+  const BLOCKCHAIN_PRIORITY: Record<string, number> = {
+    Osmosis: 100,
+    Ethereum: 50,
+    Arbitrum: 30,
+    Zilliqa: 20,
+    Neo: 20,
+  };
+  
+  /*The children prop was destructured but not used, making it unecessary.
+    There was also no handling of the error state if the process of fetching prices fails.
+    Hence, we can delete the children prop and add a react hook to handle the error state . */
+  const WalletPage: React.FC<Props> = ({ ...rest }) => {
+    const balances = useWalletBalances();
+    const [prices, setPrices] = useState<Record<string, number>>({});
+    const [error, setError] = useState<string | null>(null);
+    
+    /* the use of console.err is incorrect as the correct method for logging errors in the console in JavaScript 
+    and TypeScript is console.error(). 
+    
+    Hence, we can replace it with console.error(error) instead */
+
+    useEffect(() => {
+      const fetchPrices = async () => {
+        try {
+          const datasource = new Datasource("https://interview.switcheo.com/prices.json");
+          const fetchedPrices = await datasource.getPrices();
+          setPrices(fetchedPrices);
+        } catch (error) {
+          console.error("Failed to fetch prices:", error);
+          setError("Failed to fetch prices. Please try again later.");
+        }
+      };
+  
+      fetchPrices();
+    }, []);
+    /* The filter and sort operations in the useMemo hook for the sortedBalances constant are done in two 
+    separate steps, making it     inefficient. It would be more efficient to combine these operations into 
+    a single step. Moreover, the filtering condition in sortedBalances always returns false, which is incorrect.
+
+    formattedBalances and rows are calculated separately even though they both iterate over sortedBalances. 
+    This leads to repeated computations of formatting and USD value calculations, which is redundant.
+
+    Hence, we can combine filtering, sorting, and formatting operations into a single useMemo hook and update the 
+    filtering logic.*/
+
+    const sortedAndFormattedBalances = useMemo(() => {
+      return balances
+        .filter((balance) => balance.amount > 0)
+        .sort((a, b) => (BLOCKCHAIN_PRIORITY[b.blockchain] || -99) - (BLOCKCHAIN_PRIORITY[a.blockchain] || -99))
+        .map((balance) => ({
+          ...balance,
+          formatted: balance.amount.toFixed(2),
+          usdValue: prices[balance.currency] * balance.amount || 0,
+        }));
+    }, [balances, prices]);
+  
+    if (error) {
+      return <div>{error}</div>;
+    }
+  
+    return (
+      <div {...rest}>
+        {sortedAndFormattedBalances.map((balance, index) => (
+          <WalletRow
+            key={`${balance.currency}-${index}`}
+            className={classes.row}
+            amount={balance.amount}
+            usdValue={balance.usdValue}
+            formattedAmount={balance.formatted}
+          />
+        ))}
+      </div>
+    );
+  };
