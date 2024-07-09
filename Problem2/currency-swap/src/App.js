@@ -4,6 +4,7 @@ import 'tailwindcss/tailwind.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { FiChevronLeft } from 'react-icons/fi';
 import Sidebar from './components/Sidebar.js';
+import CustomDropdown from './components/CustomDropdown.js';
 
 const App = () => {
   const [tokens, setTokens] = useState([]);
@@ -15,7 +16,6 @@ const App = () => {
   const [buyTokenPrice, setBuyTokenPrice] = useState(0);
   const [showError, setShowError] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [selectedOption, setSelectedOption] = useState('');
 
   useEffect(() => {
     axios.get('https://interview.switcheo.com/prices.json')
@@ -27,8 +27,8 @@ const App = () => {
       });
   }, []);
 
-  const handleSellTokenChange = (e) => {
-    const selectedToken = tokens.find(token => token.currency === e.target.value);
+  const handleSellTokenChange = (currency) => {
+    const selectedToken = tokens.find(token => token.currency === currency);
     if (selectedToken) {
       setSellToken(selectedToken);
       setSellTokenPrice(selectedToken.price);
@@ -42,8 +42,8 @@ const App = () => {
     }
   };
 
-  const handleBuyTokenChange = (e) => {
-    const selectedToken = tokens.find(token => token.currency === e.target.value);
+  const handleBuyTokenChange = (currency) => {
+    const selectedToken = tokens.find(token => token.currency === currency);
     if (selectedToken) {
       setBuyToken(selectedToken);
       setBuyTokenPrice(selectedToken.price);
@@ -95,7 +95,10 @@ const App = () => {
 
   const toggleSidebar = () => {
     setShowSidebar(!showSidebar); // Toggle the sidebar state
-    setSelectedOption(''); // Reset selected option when toggling sidebar
+  };
+
+  const getLogoUrl = (currency) => {
+    return `https://github.com/Switcheo/token-icons/blob/main/tokens/${currency}.svg?raw=true`;
   };
 
   return (
@@ -112,18 +115,12 @@ const App = () => {
             <div className="mb-5">
               <div className="flex text-blue3 font-bold justify-between items-center mb-3">
                 <h5>Sell</h5>
-                <div className="relative">
-                  <select
-                    className="bg-blue3 border border-purple text-white rounded-lg p-2"
-                    value={sellToken ? sellToken.currency : ''}
-                    onChange={handleSellTokenChange}
-                  >
-                    <option value="">Select Token</option>
-                    {tokens.map(token => (
-                      <option key={token.currency} value={token.currency}>{token.currency}</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomDropdown
+                  options={tokens}
+                  selectedOption={sellToken ? sellToken.currency : ''}
+                  onChange={handleSellTokenChange}
+                  getLogoUrl={getLogoUrl}
+                />
               </div>
               <input
                 type="number"
@@ -148,18 +145,12 @@ const App = () => {
             <div className="mb-5">
               <div className="flex text-blue3 font-bold justify-between items-center mb-3">
                 <h5>Buy</h5>
-                <div className="relative">
-                  <select
-                    className="bg-blue3 border border-blue3 text-white rounded-lg p-2"
-                    value={buyToken ? buyToken.currency : ''}
-                    onChange={handleBuyTokenChange}
-                  >
-                    <option value="">Select Token</option>
-                    {tokens.map(token => (
-                      <option key={token.currency} value={token.currency}>{token.currency}</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomDropdown
+                  options={tokens}
+                  selectedOption={buyToken ? buyToken.currency : ''}
+                  onChange={handleBuyTokenChange}
+                  getLogoUrl={getLogoUrl}
+                />
               </div>
               <input
                 type="number"
@@ -174,21 +165,44 @@ const App = () => {
                 </div>
               )}
             </div>
+            {showError && (
+            <div className="fixed inset-0 z-50 overflow-auto bg-gray-800 bg-opacity-50 flex items-center justify-center">
+              <div className="relative bg-white p-5 rounded-lg shadow-lg max-w-sm text-center">
+                <button
+                  className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                  onClick={() => setShowError(false)}
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+                <p className="text-red-500 font-bold mb-3">Both sellToken and buyToken must be selected before swapping!</p>
+              </div>
+            </div>
+          )}
           </form>
 
           <div className="flex justify-center mt-4">
-            <button onClick={toggleSidebar} className="bg-blue4 py-2 px-4 rounded-lg">Connect Wallet</button>
+            <button onClick={toggleSidebar} className="bg-blue4 py-2 px-4 rounded-lg shadow-lg text-white hover:bg-blue5">
+              Connect Wallet
+            </button>
           </div>
         </div>
       </div>
 
+
+
+
       {showSidebar && (
-        <Sidebar
-          showSidebar={showSidebar}
-          toggleSidebar={toggleSidebar}
-          setSelectedOption={setSelectedOption}
-          selectedOption={selectedOption}
-        />
+        <div className="fixed inset-0 z-50 overflow-auto bg-gray-800 bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="flex justify-between items-center p-4">
+              <h2 className="text-blue6 font-bold">Connect Wallet</h2>
+              <button onClick={toggleSidebar} className="text-blue6 hover:text-blue5">
+                <FiChevronLeft />
+              </button>
+            </div>
+            <Sidebar onClose={toggleSidebar} />
+          </div>
+        </div>
       )}
     </div>
   );
